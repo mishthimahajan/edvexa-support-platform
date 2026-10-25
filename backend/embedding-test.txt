@@ -1,0 +1,4 @@
+﻿Troubleshooting Account Login
+If a user cannot sign in, select Forgot Password.
+A password reset link is sent to the registered email address.
+The reset link expires after 30 minutes.

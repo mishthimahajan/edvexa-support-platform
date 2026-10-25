@@ -1,0 +1,146 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  SUPPORT_AGENT
+  ADMIN
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum SuggestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  passwordHash   String
+  role           UserRole @default(USER)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tickets        Ticket[] @relation("TicketCreator")
+  assignedTickets Ticket[] @relation("TicketAssignee")
+  messages       TicketMessage[]
+  statusChanges  TicketStatusHistory[]
+  documents      KnowledgeDocument[]
+  suggestions    AiSuggestion[] @relation("SuggestionReviewer")
+}
+
+model Ticket {
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  category    String
+  status      TicketStatus @default(OPEN)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  creatorId   String
+  creator     User         @relation("TicketCreator", fields: [creatorId], references: [id])
+
+  assigneeId  String?
+  assignee    User?        @relation("TicketAssignee", fields: [assigneeId], references: [id])
+
+  messages    TicketMessage[]
+  history     TicketStatusHistory[]
+  suggestions AiSuggestion[]
+
+  @@index([creatorId, createdAt])
+  @@index([assigneeId, status])
+  @@index([status, updatedAt])
+  @@index([category])
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  body      String
+  createdAt DateTime @default(now())
+  ticketId  String
+  authorId  String
+
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId, createdAt])
+}
+
+model TicketStatusHistory {
+  id        String       @id @default(cuid())
+  fromStatus TicketStatus?
+  toStatus   TicketStatus
+  note       String?
+  createdAt  DateTime    @default(now())
+  ticketId   String
+  changedById String
+
+  ticket     Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  changedBy  User       @relation(fields: [changedById], references: [id])
+
+  @@index([ticketId, createdAt])
+}
+
+model KnowledgeDocument {
+  id          String   @id @default(cuid())
+  filename    String
+  mimeType    String
+  contentHash String
+  uploadedAt  DateTime @default(now())
+  uploadedById String
+
+  uploadedBy  User          @relation(fields: [uploadedById], references: [id])
+  chunks      DocumentChunk[]
+
+  @@unique([uploadedById, contentHash])
+  @@index([uploadedAt])
+}
+
+model DocumentChunk {
+  id         String   @id @default(cuid())
+  documentId String
+  chunkIndex Int
+  content    String
+  embedding  Json?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  document   KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+}
+
+model AiSuggestion {
+  id          String           @id @default(cuid())
+  ticketId    String
+  draft       String
+  sources     Json
+  status      SuggestionStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  reviewedAt  DateTime?
+  reviewerId  String?
+
+  ticket      Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  reviewer    User?   @relation("SuggestionReviewer", fields: [reviewerId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([ticketId, createdAt])
+}

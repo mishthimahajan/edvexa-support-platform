@@ -1,0 +1,6 @@
+﻿Password Reset Guide
+
+If a customer cannot access their account, they should select Forgot Password on the login page.
+A password reset link will be sent to their registered email address.
+The link expires after 30 minutes.
+If the email does not arrive, check the spam folder and verify the registered email address.
