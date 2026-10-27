@@ -271,4 +271,5 @@ List any incomplete functionality, unsupported file types, AI provider limitatio
 
 ## Author
 
-Add your name, GitHub profile, and any other links required by the assignment.
+Mishthi Mahajan
+https://github.com/mishthimahajan
